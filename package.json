@@ -1,0 +1,55 @@
+{
+  "name": "gpx-interpolator",
+  "version": "0.1.0",
+  "description": "Interpolate GPX track points based on distance intervals",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "gpx-interpolator": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli.js",
+    "dev": "ts-node src/cli.ts",
+    "test": "ts-node test-long-distance.ts",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run lint && npm run build"
+  },
+  "keywords": [
+    "gpx",
+    "interpolate",
+    "gps",
+    "track",
+    "spline",
+    "hermite",
+    "geolocation",
+    "mapping",
+    "coordinates"
+  ],
+  "author": "weitedai.dev@gmail.com",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/weited/gpx-interpolator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/weited/gpx-interpolator/issues"
+  },
+  "homepage": "https://github.com/weited/gpx-interpolator#readme",
+  "dependencies": {
+    "@xmldom/xmldom": "^0.8.10",
+    "commander": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

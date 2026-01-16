@@ -1,0 +1,11 @@
+node_modules
+dist
+*.gpx
+*.tgz
+
+.env
+
+Claude.md
+.DS_Store
+.cursorindexingignore
+.specstory
