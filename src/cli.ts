@@ -106,6 +106,8 @@ program
     let totalInputPoints = 0;
     let totalOutputPoints = 0;
     let processedCount = 0;
+    const noTrackFiles: string[] = [];
+    const failedFiles: Array<{ file: string; reason: string }> = [];
 
     for (const gpxFile of files) {
       // Skip already interpolated files (check basename so directory names don't trigger it)
@@ -116,7 +118,6 @@ program
         }
         continue;
       }
-      processedCount++;
 
       try {
         console.log(`\n📍 Processing ${gpxFile}...`);
@@ -125,7 +126,12 @@ program
         // Read input file (GPX or KML)
         const isKml = gpxFile.toLowerCase().endsWith('.kml');
         const gpxData = isKml ? kmlRead(gpxFile) : gpxRead(gpxFile);
-        totalInputPoints += gpxData.lat.length;
+
+        if (gpxData.lat.length === 0) {
+          console.error(`⚠️  No track points found, skipping ${gpxFile}`);
+          noTrackFiles.push(gpxFile);
+          continue;
+        }
 
         if (verbose || statsOnly) {
           console.log(`\n📊 Track Statistics:`);
@@ -173,6 +179,7 @@ program
         }
 
         if (statsOnly) {
+          processedCount++;
           continue;
         }
 
@@ -207,7 +214,6 @@ program
 
         // Interpolate
         const gpxDataInterp = gpxInterpolate(gpxDataNodup, interpolateOptions);
-        totalOutputPoints += gpxDataInterp.lat.length;
 
         // Generate output filename — always .gpx (KML inputs are converted)
         const outFile =
@@ -238,9 +244,15 @@ program
             `   (${(1 / ratio).toFixed(1)}x fewer points than original)`
           );
         }
+
+        // Counted last so a file that fails part-way stays out of the summary
+        processedCount++;
+        totalInputPoints += gpxData.lat.length;
+        totalOutputPoints += gpxDataInterp.lat.length;
       } catch (error) {
-        console.error(`\n❌ Error processing ${gpxFile}:`, error);
-        process.exit(1);
+        const reason = error instanceof Error ? error.message : String(error);
+        console.error(`\n❌ Error processing ${gpxFile}: ${reason}`);
+        failedFiles.push({ file: gpxFile, reason });
       }
     }
 
@@ -250,6 +262,25 @@ program
       console.log(
         `📈 Summary: ${totalInputPoints} → ${totalOutputPoints} points across ${processedCount} files`
       );
+    }
+
+    // A list only adds something when the messages may have scrolled past
+    if (files.length > 1 && noTrackFiles.length > 0) {
+      console.error(`\n⚠️  Skipped ${noTrackFiles.length} file(s) with no track points:`);
+      for (const file of noTrackFiles) {
+        console.error(`   ${file}`);
+      }
+    }
+    if (files.length > 1 && failedFiles.length > 0) {
+      console.error(`\n❌ Failed to process ${failedFiles.length} file(s):`);
+      for (const { file, reason } of failedFiles) {
+        console.error(`   ${file}: ${reason}`);
+      }
+    }
+
+    const nothingUsable = processedCount === 0 && noTrackFiles.length > 0;
+    if (failedFiles.length > 0 || nothingUsable) {
+      process.exitCode = 1;
     }
   });
 

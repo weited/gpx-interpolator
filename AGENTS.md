@@ -151,6 +151,11 @@ gpx-interpolator -R tracks/
 - `--stats-only` - Statistics only, no interpolation
 - `-R, --recursive` - Scan folders recursively
 
+### Batch Behavior
+- Files with no track points are skipped with a warning
+- A file that fails doesn't stop the batch; failures are listed at the end of a multi-file run
+- Exit code is 1 if any file failed, or if every file that was read had no track points
+
 ## Important Implementation Details
 
 ### Distance Calculation

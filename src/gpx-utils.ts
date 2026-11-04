@@ -89,6 +89,10 @@ export function gpxCalculateSpeed(gpxData: GPXData): number[] {
  * Remove duplicate trackpoints
  */
 export function gpxRemoveDuplicates(gpxData: GPXData): GPXData {
+  if (gpxData.lat.length === 0) {
+    return gpxData;
+  }
+
   const gpxDist = gpxCalculateDistance(gpxData, false);
 
   const iDist: number[] = [0];

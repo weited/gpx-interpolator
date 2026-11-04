@@ -77,6 +77,79 @@ test('a directory name containing _interpolated does not cause files to be skipp
   assert.ok(exists(root, 'old_interpolated.d/d_interpolated.gpx'));
 });
 
+const POINT_ONLY_KML = `<?xml version="1.0"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><Placemark>
+<Point><coordinates>10,20,0</coordinates></Point>
+</Placemark></Document></kml>`;
+
+const MISMATCHED_KML = `<?xml version="1.0"?><kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2"><Document><Placemark>
+<gx:Track><when>2024-01-01T00:00:00Z</when><gx:coord>10 20 0</gx:coord><gx:coord>11 21 0</gx:coord></gx:Track>
+</Placemark></Document></kml>`;
+
+test('a file with no tracks is skipped and the rest of the folder still succeeds', () => {
+  const root = makeTree();
+  // Sorts before a.gpx, so it would stop the batch before any output if it were fatal
+  fs.writeFileSync(path.join(root, 'tracks', '0-points.kml'), POINT_ONLY_KML);
+
+  const result = runCli(root, '-r', '100', 'tracks');
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(exists(root, 'tracks/a_interpolated.gpx'));
+  assert.ok(!exists(root, 'tracks/0-points_interpolated.gpx'));
+  assert.match(result.stderr, /Skipped 1 file\(s\) with no track points/);
+  assert.match(result.stdout, /across 2 files/);
+});
+
+test('a broken file is reported, the rest still run, and the exit code is 1', () => {
+  const root = makeTree();
+  fs.writeFileSync(path.join(root, 'tracks', '0-broken.kml'), MISMATCHED_KML);
+
+  const result = runCli(root, '-r', '100', 'tracks');
+
+  assert.equal(result.status, 1);
+  assert.ok(exists(root, 'tracks/a_interpolated.gpx'));
+  assert.ok(exists(root, 'tracks/b_interpolated.gpx'));
+  assert.match(result.stderr, /Failed to process 1 file\(s\)/);
+  assert.match(result.stderr, /0-broken\.kml: .*1 <when> but 2 <gx:coord>/);
+  assert.match(result.stdout, /across 2 files/);
+});
+
+test('corrupt files count as failures with a clear reason, not as files with no tracks', () => {
+  const root = makeTree();
+  fs.writeFileSync(path.join(root, 'tracks', '0-garbage.gpx'), 'this is not xml');
+  fs.writeFileSync(path.join(root, 'tracks', '1-empty.kml'), '');
+
+  const result = runCli(root, '-r', '100', 'tracks');
+
+  assert.equal(result.status, 1);
+  assert.ok(exists(root, 'tracks/a_interpolated.gpx'));
+  assert.match(result.stderr, /Failed to process 2 file\(s\)/);
+  assert.match(result.stderr, /0-garbage\.gpx: not a valid XML file/);
+  assert.match(result.stderr, /1-empty\.kml: file is empty/);
+  assert.doesNotMatch(result.stderr, /no track points/);
+});
+
+test('a single file with no tracks writes nothing and exits 1', () => {
+  const root = makeTree();
+  fs.writeFileSync(path.join(root, 'points.kml'), POINT_ONLY_KML);
+
+  const result = runCli(root, 'points.kml');
+
+  assert.equal(result.status, 1);
+  assert.ok(!exists(root, 'points_interpolated.gpx'));
+  assert.match(result.stderr, /No track points found/);
+});
+
+test('--stats-only skips a file with no tracks without printing bogus statistics', () => {
+  const root = makeTree();
+  fs.writeFileSync(path.join(root, 'tracks', '0-points.kml'), POINT_ONLY_KML);
+
+  const result = runCli(root, '--stats-only', 'tracks');
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.doesNotMatch(result.stdout, /Infinity/);
+  assert.match(result.stderr, /Skipped 1 file/);
+});
+
 test('a missing path fails with a clear error', () => {
   const root = makeTree();
   const result = runCli(root, 'no-such-folder');

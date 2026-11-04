@@ -1,6 +1,6 @@
 import * as fs from 'fs';
-import { DOMParser } from '@xmldom/xmldom';
 import { GPXData } from './types';
+import { readXmlFile } from './gpx-io';
 import { formatTimestamp } from './gpx-utils';
 
 const GX_NS = 'http://www.google.com/kml/ext/2.2';
@@ -41,9 +41,7 @@ function parseCoord(parts: string[], tstamp: number | null, track: number): KmlP
  *         because its timestamps can't be matched to positions reliably.
  */
 export function kmlRead(kmlFile: string): GPXData {
-  const content = fs.readFileSync(kmlFile, 'utf-8');
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(content, 'text/xml');
+  const doc = readXmlFile(kmlFile);
 
   const points: KmlPoint[] = [];
   let tzinfo: string | null = null;

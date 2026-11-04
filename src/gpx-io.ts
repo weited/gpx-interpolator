@@ -4,6 +4,25 @@ import { GPXData, GPXPoint } from './types';
 import { formatTimestamp, gpxCalculateSpeed } from './gpx-utils';
 
 /**
+ * Read and parse an XML file, so that callers can tell a corrupt file from one
+ * that is valid but has no tracks.
+ *
+ * @throws if the file is empty or has no root element
+ */
+export function readXmlFile(file: string) {
+  const content = fs.readFileSync(file, 'utf-8');
+  if (content.trim() === '') {
+    throw new Error('file is empty');
+  }
+
+  const doc = new DOMParser().parseFromString(content, 'text/xml');
+  if (!doc || !doc.documentElement) {
+    throw new Error('not a valid XML file');
+  }
+  return doc;
+}
+
+/**
  * Read GPX file and extract track data
  */
 export function gpxRead(gpxFile: string): GPXData {
@@ -15,9 +34,7 @@ export function gpxRead(gpxFile: string): GPXData {
     tzinfo: null,
   };
 
-  const content = fs.readFileSync(gpxFile, 'utf-8');
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(content, 'text/xml');
+  const doc = readXmlFile(gpxFile);
 
   const tracks = doc.getElementsByTagName('trk');
   const iLatlon: number[] = [];

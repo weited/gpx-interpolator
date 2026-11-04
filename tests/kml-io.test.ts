@@ -156,6 +156,11 @@ test('removing duplicates keeps segment boundaries on the right points', () => {
   assert.deepEqual(result.segmentStarts, [3]);
 });
 
+test('removing duplicates from empty data stays empty', () => {
+  const data: GPXData = { lat: [], lon: [], ele: null, tstamp: null, tzinfo: null };
+  assert.deepEqual(gpxRemoveDuplicates(data).lat, []);
+});
+
 test('statistics and speed ignore the jump between segments', () => {
   const data: GPXData = {
     lat: [0, 0, 40, 40],

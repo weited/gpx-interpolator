@@ -78,6 +78,8 @@ gpx-interpolator -r 5 -R tracks/
 
 Inputs can be files or folders. Files whose name contains `_interpolated.` are skipped.
 
+Files with no track points are skipped with a warning, and a file that fails doesn't stop the others. Skipped and failed files are listed at the end of a multi-file run. The exit code is 1 if any file failed, or if every file that was read had no track points.
+
 KML input supports `gx:Track` and `LineString`. Each track is interpolated separately and written as its own `<trkseg>`, so `-n` applies per track. As with `-g`, a file with several segments produces more than `-n` points in total. Points with no usable `<when>` are dropped if other points have one, and elevation is left out unless every point has it. A `gx:Track` with different numbers of `<when>` and `<gx:coord>` elements is an error.
 
 ### CLI Options
