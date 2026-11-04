@@ -214,6 +214,18 @@ npm run check:distance # Print Haversine vs Vincenty error comparison
 npm run lint        # Type checking
 ```
 
+## CI & Releases
+- `.github/workflows/ci.yml` runs lint, tests and build on Node 18, 22 and 24 for pushes to `main` and for pull requests
+- `.github/workflows/publish.yml` publishes to npm when a `v*` tag is pushed, using npm Trusted Publishing (no stored token)
+- The tag must match the version in `package.json`, or the publish fails
+- `prepublishOnly` runs lint, tests and build, so manual publishes are checked too
+
+To release:
+```bash
+npm version minor        # or patch/major: updates package.json and creates the tag
+git push --follow-tags   # pushes the commit and tag, which starts the publish
+```
+
 ## Common Use Cases
 
 ### Programmatic Usage

@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "gpx-interpolator": "./dist/cli.js"
+    "gpx-interpolator": "dist/cli.js"
   },
   "files": [
     "dist",
@@ -18,7 +18,7 @@
     "test": "node -r ts-node/register --test tests/*.test.ts",
     "check:distance": "ts-node test-long-distance.ts",
     "lint": "tsc --noEmit",
-    "prepublishOnly": "npm run lint && npm run build"
+    "prepublishOnly": "npm run lint && npm test && npm run build"
   },
   "keywords": [
     "gpx",
@@ -35,7 +35,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/weited/gpx-interpolator.git"
+    "url": "git+https://github.com/weited/gpx-interpolator.git"
   },
   "bugs": {
     "url": "https://github.com/weited/gpx-interpolator/issues"
