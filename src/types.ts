@@ -8,6 +8,11 @@ export interface GPXData {
   ele: number[] | null;
   tstamp: number[] | null;
   tzinfo: string | null;
+  /**
+   * Ascending indices where a new, disconnected segment begins (index 0 is implicit).
+   * No line is interpolated, measured or written across these boundaries.
+   */
+  segmentStarts?: number[];
 }
 
 /**

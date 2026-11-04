@@ -17,6 +17,8 @@ TypeScript/Node.js library and CLI tool for interpolating GPX track files using 
 - Optional speed calculation
 - Track statistics (distance, duration, elevation gain/loss, bounds)
 - Both CLI tool and programmatic API
+- KML input (`gx:Track`, `LineString`), converted to GPX by the CLI
+- Folder input with optional recursive scanning
 
 ## Project Structure
 
@@ -26,9 +28,11 @@ src/
 ├── pchip.ts          # PCHIP interpolation algorithm implementation
 ├── gpx-utils.ts      # Utility functions (distance, speed, statistics, formatting)
 ├── gpx-io.ts         # File I/O (read/write GPX XML files)
+├── kml-io.ts         # File I/O (read/write KML files)
 ├── interpolate.ts    # Main interpolation logic
 ├── cli.ts            # Command-line interface
 └── index.ts          # Public API exports
+tests/                # Test suite (node:test)
 ```
 
 ## Core Data Types
@@ -42,6 +46,7 @@ Parallel arrays for efficient processing:
   ele: number[] | null;    // Elevation in meters
   tstamp: number[] | null; // Unix timestamps (seconds)
   tzinfo: string | null;   // Timezone (e.g., "Z", "+08:00")
+  segmentStarts?: number[]; // Indices where a disconnected segment begins (0 is implicit)
 }
 ```
 
@@ -85,6 +90,8 @@ Parallel arrays for efficient processing:
 - `interpolateTrack(gpxData, options)` - Recommended alias with options object
 - `gpxRead(filename)` - Read GPX file to GPXData
 - `gpxWrite(filename, gpxData, writeSpeed?)` - Write GPXData to file
+- `kmlRead(filename)` - Read KML file to GPXData
+- `kmlWrite(filename, gpxData)` - Write GPXData to KML (one `gx:Track` per segment)
 
 ### Utilities
 - `gpxCalculateDistance(gpxData, useEle)` - Distance between points (Haversine)
@@ -124,6 +131,12 @@ gpx-interpolator --stats-only track.gpx
 
 # Multiple files
 gpx-interpolator *.gpx
+
+# KML input (output is always GPX)
+gpx-interpolator track.kml
+
+# All .gpx/.kml files in a folder, including subfolders
+gpx-interpolator -R tracks/
 ```
 
 ### CLI Options
@@ -136,6 +149,7 @@ gpx-interpolator *.gpx
 - `-v, --verbose` - Show detailed statistics
 - `--dry-run` - Preview without writing
 - `--stats-only` - Statistics only, no interpolation
+- `-R, --recursive` - Scan folders recursively
 
 ## Important Implementation Details
 
@@ -156,6 +170,9 @@ gpx-interpolator *.gpx
 - Creates separate track segments
 - Each segment interpolated independently
 - Gaps copied as-is to output
+- `segmentStarts` marks segments that are always separate (currently set by `kmlRead`)
+- Unlike `maxGap` splits, these are excluded from distance, speed and elevation statistics and written as separate `<trkseg>`/`gx:Track` elements
+- `numPoints` applies per segment, so multi-segment output has more than `numPoints` points
 
 ### Performance Optimizations
 - Parallel array format for efficient memory access
@@ -169,6 +186,11 @@ gpx-interpolator *.gpx
 - Preserves timezone information from input
 - Handles multiple tracks and segments
 - Filters out points without timestamps if some have them
+- `gpxRead` joins multiple tracks and segments into one continuous line (it does not set `segmentStarts`)
+- Reads KML `gx:Track` and `LineString`; `LineString` is ignored if the file has any `gx:Track`
+- KML elevation is null unless every kept point has it
+- `kmlRead` throws if a `gx:Track` has different `<when>` and `<gx:coord>` counts
+- `kmlWrite` writes unknown elevation as 0 because `gx:coord` requires three values
 
 ## Dependencies
 - `@xmldom/xmldom` - GPX XML parsing/serialization
@@ -182,7 +204,8 @@ npm install          # Install dependencies
 npm run build        # Compile TypeScript to dist/
 npm start           # Run CLI from compiled code
 npm run dev         # Run CLI from source (ts-node)
-npm test            # Run test file
+npm test            # Run tests in tests/ (needs Node.js >= 18)
+npm run check:distance # Print Haversine vs Vincenty error comparison
 npm run lint        # Type checking
 ```
 
@@ -220,13 +243,16 @@ const newData = pointsToGpxData(points);
 ```
 
 ## Testing
-- Test file: `test-long-distance.ts` - Tests long-distance interpolation
+- `tests/kml-io.test.ts` - KML reading/writing, segments, timezone output
+- `tests/cli.test.ts` - Folder scanning and file skipping
+- Tests create fixtures in a temp folder because `*.gpx` and `*.kml` are git-ignored
+- `test-long-distance.ts` - Standalone report comparing Haversine and Vincenty (has no assertions, not part of `npm test`)
 - Sample GPX files in root directory (flight paths, etc.)
 
 ## Notes for Future Development
 
 ### Current Limitations
-- Only processes `<trk>` elements (not routes or waypoints)
+- Only processes GPX `<trk>` elements (not routes or waypoints)
 - Assumes WGS84 coordinate system
 - Earth treated as perfect sphere (6371km radius) - good enough for most cases
 - Large files (millions of points) may have memory constraints

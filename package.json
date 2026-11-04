@@ -15,7 +15,8 @@
     "build": "tsc",
     "start": "node dist/cli.js",
     "dev": "ts-node src/cli.ts",
-    "test": "ts-node test-long-distance.ts",
+    "test": "node -r ts-node/register --test tests/*.test.ts",
+    "check:distance": "ts-node test-long-distance.ts",
     "lint": "tsc --noEmit",
     "prepublishOnly": "npm run lint && npm run build"
   },

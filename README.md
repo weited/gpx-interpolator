@@ -65,7 +65,20 @@ gpx-interpolator -s your-track.gpx
 
 # Process multiple files
 gpx-interpolator *.gpx
+
+# Convert and interpolate a KML file (output is always GPX)
+gpx-interpolator -r 5 your-track.kml
+
+# Process every .gpx and .kml file in a folder
+gpx-interpolator -r 5 tracks/
+
+# Include subfolders
+gpx-interpolator -r 5 -R tracks/
 ```
+
+Inputs can be files or folders. Files whose name contains `_interpolated.` are skipped.
+
+KML input supports `gx:Track` and `LineString`. Each track is interpolated separately and written as its own `<trkseg>`, so `-n` applies per track. As with `-g`, a file with several segments produces more than `-n` points in total. Points with no usable `<when>` are dropped if other points have one, and elevation is left out unless every point has it. A `gx:Track` with different numbers of `<when>` and `<gx:coord>` elements is an error.
 
 ### CLI Options
 
@@ -80,6 +93,7 @@ gpx-interpolator *.gpx
 | `-v, --verbose`               | Verbose output with statistics                         |
 | `--dry-run`                   | Preview what would be done without writing files       |
 | `--stats-only`                | Only show track statistics, don't interpolate          |
+| `-R, --recursive`             | Scan folders recursively                               |
 
 ## Module Usage
 

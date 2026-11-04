@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
+import * as fs from "fs";
 import * as path from "path";
 import { gpxRead, gpxWrite } from "./gpx-io";
+import { kmlRead } from "./kml-io";
 import { gpxInterpolate } from "./interpolate";
 import {
   gpxRemoveDuplicates,
@@ -12,13 +14,43 @@ import {
 } from "./gpx-utils";
 import { InterpolateOptions } from "./types";
 
+function expandPaths(inputs: string[], recursive: boolean): string[] {
+  const result: string[] = [];
+  for (const input of inputs) {
+    let stat: fs.Stats;
+    try {
+      stat = fs.statSync(input);
+    } catch {
+      console.error(`Error: path not found: ${input}`);
+      process.exit(1);
+    }
+    if (stat.isDirectory()) {
+      const entries = fs.readdirSync(input, { withFileTypes: true });
+      for (const entry of entries) {
+        const full = path.join(input, entry.name);
+        if (entry.isDirectory() && recursive) {
+          result.push(...expandPaths([full], recursive));
+        } else if (entry.isFile()) {
+          const lower = entry.name.toLowerCase();
+          if (lower.endsWith('.gpx') || lower.endsWith('.kml')) {
+            result.push(full);
+          }
+        }
+      }
+    } else {
+      result.push(input);
+    }
+  }
+  return result;
+}
+
 const program = new Command();
 
 program
   .name("gpx-interpolate")
   .description("Interpolate GPX files using piecewise cubic Hermite splines")
   .version("1.1.0")
-  .argument("<files...>", "GPX file(s) to interpolate")
+  .argument("<paths...>", "GPX/KML file(s) or folder(s) to interpolate")
   .option(
     "-r, --resolution <meters>",
     "interpolation resolution in meters (default: 1.0)",
@@ -48,7 +80,9 @@ program
     "only show track statistics, do not interpolate",
     false
   )
-  .action((files: string[], options) => {
+  .option("-R, --recursive", "scan folders recursively", false)
+  .action((paths: string[], options) => {
+    const files = expandPaths(paths, options.recursive);
     const resolution = parseFloat(options.resolution);
     const numPoints = options.num ? parseInt(options.num) : null;
     const minDistance = options.minDistance
@@ -71,22 +105,26 @@ program
 
     let totalInputPoints = 0;
     let totalOutputPoints = 0;
+    let processedCount = 0;
 
     for (const gpxFile of files) {
-      // Skip already interpolated files
-      if (gpxFile.endsWith("_interpolated.gpx")) {
+      // Skip already interpolated files (check basename so directory names don't trigger it)
+      const base = path.basename(gpxFile);
+      if (base.includes("_interpolated.")) {
         if (verbose) {
           console.log(`Skipping already interpolated file: ${gpxFile}`);
         }
         continue;
       }
+      processedCount++;
 
       try {
         console.log(`\n📍 Processing ${gpxFile}...`);
         console.log("─".repeat(50));
 
-        // Read GPX file
-        const gpxData = gpxRead(gpxFile);
+        // Read input file (GPX or KML)
+        const isKml = gpxFile.toLowerCase().endsWith('.kml');
+        const gpxData = isKml ? kmlRead(gpxFile) : gpxRead(gpxFile);
         totalInputPoints += gpxData.lat.length;
 
         if (verbose || statsOnly) {
@@ -171,13 +209,13 @@ program
         const gpxDataInterp = gpxInterpolate(gpxDataNodup, interpolateOptions);
         totalOutputPoints += gpxDataInterp.lat.length;
 
-        // Generate output filename
+        // Generate output filename — always .gpx (KML inputs are converted)
         const outFile =
           outputFile ||
           (() => {
             const ext = path.extname(gpxFile);
             const base = gpxFile.slice(0, -ext.length);
-            return `${base}_interpolated${ext}`;
+            return `${base}_interpolated.gpx`;
           })();
 
         if (dryRun) {
@@ -185,7 +223,6 @@ program
             `\n🔍 Dry run - would save ${gpxDataInterp.lat.length} points to ${outFile}`
           );
         } else {
-          // Write output file
           gpxWrite(outFile, gpxDataInterp, writeSpeed);
           console.log(
             `\n✅ Saved ${gpxDataInterp.lat.length} trackpoints to ${outFile}`
@@ -208,10 +245,10 @@ program
     }
 
     // Summary for multiple files
-    if (files.length > 1 && !statsOnly) {
+    if (processedCount > 1 && !statsOnly) {
       console.log("\n" + "═".repeat(50));
       console.log(
-        `📈 Summary: ${totalInputPoints} → ${totalOutputPoints} points across ${files.length} files`
+        `📈 Summary: ${totalInputPoints} → ${totalOutputPoints} points across ${processedCount} files`
       );
     }
   });

@@ -143,6 +143,7 @@ export function gpxInterpolate(
 
   // Calculate distances between consecutive points
   const distances = gpxCalculateDistance(_gpxData, true);
+  const sourceBreaks = new Set(_gpxData.segmentStarts ?? []);
 
   // Build segments based on gaps and minDistance threshold
   interface ProcessSegment {
@@ -156,7 +157,7 @@ export function gpxInterpolate(
 
   for (let i = 1; i < _gpxData.lat.length; i++) {
     const dist = distances[i];
-    const isGap = dist > maxGap;
+    const isGap = dist > maxGap || sourceBreaks.has(i);
     const isLast = i === _gpxData.lat.length - 1;
 
     if (isGap) {
@@ -197,11 +198,15 @@ export function gpxInterpolate(
   const resultLon: number[] = [];
   const resultEle: number[] = [];
   const resultTstamp: number[] = [];
+  const resultSegmentStarts: number[] = [];
 
   const totalSegments = segments.length;
 
   for (let s = 0; s < segments.length; s++) {
     const segment = segments[s];
+    if (sourceBreaks.has(segment.startIdx)) {
+      resultSegmentStarts.push(resultLat.length);
+    }
     const progressStart = (s / totalSegments) * 100;
     const progressEnd = ((s + 1) / totalSegments) * 100;
 
@@ -263,6 +268,7 @@ export function gpxInterpolate(
     ele: _gpxData.ele ? resultEle : null,
     tstamp: _gpxData.tstamp ? resultTstamp : null,
     tzinfo: _gpxData.tzinfo,
+    ...(resultSegmentStarts.length > 0 && { segmentStarts: resultSegmentStarts }),
   };
 }
 

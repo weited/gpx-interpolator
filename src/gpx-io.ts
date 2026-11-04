@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import { GPXData, GPXPoint } from './types';
-import { gpxCalculateSpeed } from './gpx-utils';
+import { formatTimestamp, gpxCalculateSpeed } from './gpx-utils';
 
 /**
  * Read GPX file and extract track data
@@ -125,9 +125,15 @@ export function gpxWrite(
   }
 
   const track = doc.createElement('trk');
-  const segment = doc.createElement('trkseg');
+  const segmentStarts = new Set(gpxData.segmentStarts ?? []);
+  let segment = doc.createElement('trkseg');
 
   for (let i = 0; i < gpxData.lat.length; i++) {
+    if (segmentStarts.has(i)) {
+      track.appendChild(segment);
+      segment = doc.createElement('trkseg');
+    }
+
     const trkpt = doc.createElement('trkpt');
     trkpt.setAttribute('lat', gpxData.lat[i].toString());
     trkpt.setAttribute('lon', gpxData.lon[i].toString());
@@ -142,15 +148,7 @@ export function gpxWrite(
     // Time
     if (gpxData.tstamp) {
       const time = doc.createElement('time');
-      const date = new Date(gpxData.tstamp[i] * 1000);
-
-      // Format ISO string with timezone
-      let timeStr = date.toISOString();
-      if (gpxData.tzinfo && gpxData.tzinfo !== 'Z') {
-        timeStr = timeStr.replace('Z', gpxData.tzinfo);
-      }
-
-      time.textContent = timeStr;
+      time.textContent = formatTimestamp(gpxData.tstamp[i], gpxData.tzinfo);
       trkpt.appendChild(time);
     }
 

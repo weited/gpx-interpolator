@@ -5,6 +5,22 @@ const EARTH_RADIUS = 6371e3; // meters
 const EPS = 1e-6; // seconds
 
 /**
+ * Format a Unix timestamp as ISO 8601 in the given timezone ("Z" or "+08:00").
+ * The wall-clock digits are shifted so the string denotes the same instant.
+ */
+export function formatTimestamp(tstamp: number, tzinfo: string | null): string {
+  const match = tzinfo ? tzinfo.match(/^([+-])(\d{2}):(\d{2})$/) : null;
+  if (!match) {
+    return new Date(tstamp * 1000).toISOString();
+  }
+
+  const sign = match[1] === '-' ? -1 : 1;
+  const offsetSeconds = sign * (parseInt(match[2]) * 3600 + parseInt(match[3]) * 60);
+  const shifted = new Date((tstamp + offsetSeconds) * 1000).toISOString();
+  return shifted.replace('Z', tzinfo!);
+}
+
+/**
  * Calculate distance between GPX trackpoints using Haversine formula
  */
 export function gpxCalculateDistance(
@@ -56,9 +72,10 @@ export function gpxCalculateSpeed(gpxData: GPXData): number[] {
     gpxDtstamp.push(gpxData.tstamp[i] - gpxData.tstamp[i - 1]);
   }
 
+  const segmentStarts = new Set(gpxData.segmentStarts ?? []);
   const gpxSpeed: number[] = [];
   for (let i = 0; i < gpxDist.length; i++) {
-    if (gpxDtstamp[i] < EPS) {
+    if (gpxDtstamp[i] < EPS || segmentStarts.has(i)) {
       gpxSpeed.push(0);
     } else {
       gpxSpeed.push(gpxDist[i] / gpxDtstamp[i]);
@@ -92,6 +109,17 @@ export function gpxRemoveDuplicates(gpxData: GPXData): GPXData {
     tstamp: gpxData.tstamp ? iDist.map((i) => gpxData.tstamp![i]) : null,
     tzinfo: gpxData.tzinfo,
   };
+
+  if (gpxData.segmentStarts) {
+    // A segment whose first points were removed now starts at its first kept point
+    const remapped = new Set<number>();
+    let kept = 0;
+    for (const start of gpxData.segmentStarts) {
+      while (kept < iDist.length && iDist[kept] < start) kept++;
+      if (kept < iDist.length) remapped.add(kept);
+    }
+    if (remapped.size > 0) gpxDataNodup.segmentStarts = [...remapped];
+  }
 
   return gpxDataNodup;
 }
@@ -197,11 +225,12 @@ export function detectSegments(
 ): TrackSegment[] {
   const segments: TrackSegment[] = [];
   const distances = gpxCalculateDistance(gpxData, true);
+  const segmentStarts = new Set(gpxData.segmentStarts ?? []);
 
   let segmentStart = 0;
 
   for (let i = 1; i < gpxData.lat.length; i++) {
-    const isGap = distances[i] > maxGap;
+    const isGap = distances[i] > maxGap || segmentStarts.has(i);
     const isLast = i === gpxData.lat.length - 1;
 
     if (isGap || isLast) {
@@ -241,7 +270,11 @@ export function gpxCalculateStatistics(
   maxGap: number = Infinity
 ): TrackStatistics {
   const distances = gpxCalculateDistance(gpxData, true);
-  const totalDistance = distances.reduce((a, b) => a + b, 0);
+  const segmentStarts = new Set(gpxData.segmentStarts ?? []);
+  const totalDistance = distances.reduce(
+    (sum, dist, i) => (segmentStarts.has(i) ? sum : sum + dist),
+    0
+  );
 
   // Duration
   let totalDuration: number | null = null;
@@ -270,6 +303,7 @@ export function gpxCalculateStatistics(
     elevationLoss = 0;
 
     for (let i = 1; i < gpxData.ele.length; i++) {
+      if (segmentStarts.has(i)) continue;
       const diff = gpxData.ele[i] - gpxData.ele[i - 1];
       if (diff > 0) {
         elevationGain += diff;

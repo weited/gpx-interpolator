@@ -17,6 +17,7 @@ export { gpxInterpolate, interpolateTrack } from './interpolate';
 
 // File I/O (Node.js only)
 export { gpxRead, gpxWrite } from './gpx-io';
+export { kmlRead, kmlWrite } from './kml-io';
 
 // Utilities
 export {
