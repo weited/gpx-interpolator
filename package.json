@@ -1,6 +1,6 @@
 {
   "name": "gpx-interpolator",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Interpolate GPX track points based on distance intervals",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -44,12 +44,16 @@ function expandPaths(inputs: string[], recursive: boolean): string[] {
   return result;
 }
 
+// Loaded at runtime because package.json is outside tsconfig's rootDir.
+// The relative path is the same from src/ and dist/.
+const { version } = require("../package.json");
+
 const program = new Command();
 
 program
   .name("gpx-interpolate")
   .description("Interpolate GPX files using piecewise cubic Hermite splines")
-  .version("0.1.0")
+  .version(version)
   .argument("<paths...>", "GPX/KML file(s) or folder(s) to interpolate")
   .option(
     "-r, --resolution <meters>",

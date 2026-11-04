@@ -4,7 +4,7 @@
 TypeScript/Node.js library and CLI tool for interpolating GPX track files using Piecewise Cubic Hermite Interpolating Polynomial (PCHIP) splines. Adds intermediate points between GPS track points for smoother, more detailed tracks.
 
 **Package Name:** `gpx-interpolator`
-**Version:** 0.1.0
+**Version:** 0.2.0
 **License:** MIT
 
 ## Key Features

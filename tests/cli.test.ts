@@ -150,6 +150,14 @@ test('--stats-only skips a file with no tracks without printing bogus statistics
   assert.match(result.stderr, /Skipped 1 file/);
 });
 
+test('--version reports the version in package.json', () => {
+  const { version } = require('../package.json');
+  const result = runCli(makeTree(), '--version');
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout.trim(), version);
+});
+
 test('a missing path fails with a clear error', () => {
   const root = makeTree();
   const result = runCli(root, 'no-such-folder');
