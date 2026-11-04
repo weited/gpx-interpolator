@@ -18,7 +18,7 @@ TypeScript/Node.js implementation of GPX interpolation using piecewise cubic Her
 ## Installation
 
 ```bash
-npm install @weited/gpx-interpolator
+npm install gpx-interpolator
 ```
 
 Or for development:
@@ -108,7 +108,7 @@ import {
   gpxCalculateStatistics,
   gpxDataToPoints,
   pointsToGpxData,
-} from "@weited/gpx-interpolator";
+} from "gpx-interpolator";
 
 // Read GPX file
 const gpxData = gpxRead("input.gpx");

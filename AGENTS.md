@@ -3,7 +3,7 @@
 ## Overview
 TypeScript/Node.js library and CLI tool for interpolating GPX track files using Piecewise Cubic Hermite Interpolating Polynomial (PCHIP) splines. Adds intermediate points between GPS track points for smoother, more detailed tracks.
 
-**Package Name:** `@weited/gpx-interpolator`
+**Package Name:** `gpx-interpolator`
 **Version:** 0.1.0
 **License:** MIT
 
@@ -218,7 +218,7 @@ npm run lint        # Type checking
 
 ### Programmatic Usage
 ```typescript
-import { gpxRead, gpxInterpolate, gpxWrite } from '@weited/gpx-interpolator';
+import { gpxRead, gpxInterpolate, gpxWrite } from 'gpx-interpolator';
 
 const gpxData = gpxRead('input.gpx');
 const result = gpxInterpolate(gpxData, {
@@ -231,7 +231,7 @@ gpxWrite('output.gpx', result);
 
 ### Statistics Analysis
 ```typescript
-import { gpxRead, gpxCalculateStatistics } from '@weited/gpx-interpolator';
+import { gpxRead, gpxCalculateStatistics } from 'gpx-interpolator';
 
 const gpxData = gpxRead('track.gpx');
 const stats = gpxCalculateStatistics(gpxData);
@@ -240,7 +240,7 @@ console.log(`${stats.totalDistance}m in ${stats.totalDuration}s`);
 
 ### Working with Points
 ```typescript
-import { gpxDataToPoints, pointsToGpxData } from '@weited/gpx-interpolator';
+import { gpxDataToPoints, pointsToGpxData } from 'gpx-interpolator';
 
 const points = gpxDataToPoints(gpxData);  // Array of {lat, lon, ele?, time?}
 // ... modify points ...
