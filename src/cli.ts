@@ -49,7 +49,7 @@ const program = new Command();
 program
   .name("gpx-interpolate")
   .description("Interpolate GPX files using piecewise cubic Hermite splines")
-  .version("1.1.0")
+  .version("0.1.0")
   .argument("<paths...>", "GPX/KML file(s) or folder(s) to interpolate")
   .option(
     "-r, --resolution <meters>",
